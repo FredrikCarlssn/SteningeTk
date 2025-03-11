@@ -1,0 +1,172 @@
+/* Remove Vite's default styles and keep the booking interface styles */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.time-slot.selected {
+  background-color: #4caf50;
+  color: white;
+}
+/* Keep all other booking-related styles */
+
+:root {
+  font-family: Inter, system-ui, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #213547;
+  background-color: #ffffff;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.court-selection {
+  margin: 20px 0;
+  display: flex;
+  gap: 10px;
+}
+
+.court-selection button {
+  padding: 10px 20px;
+  border: 1px solid #ddd;
+  background: #f5f5f5;
+  cursor: pointer;
+}
+
+.court-selection button.active {
+  background-color: #4caf50;
+  color: white;
+  border-color: #4caf50;
+}
+
+.date-picker {
+  width: 100%;
+}
+
+.date-picker label {
+  margin-right: 10px;
+}
+
+.time-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.time-slot {
+  padding: 10px;
+  border: 1px solid #ddd;
+  background: #f8f8f8;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.time-slot:hover:not(:disabled) {
+  background: #e0e0e0;
+}
+
+.time-slot:disabled {
+  background-color: #ffebee;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.booking-summary {
+  border: 1px solid #ddd;
+  padding: 20px;
+  margin-top: 20px;
+  border-radius: 4px;
+}
+
+.book-button {
+  background-color: #2196f3;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.loading,
+.error {
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 4px;
+}
+
+.loading {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.error {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+.react-datepicker-wrapper {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.react-datepicker__input-container input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Add to existing styles */
+.payment-method-button {
+  flex: 1;
+  padding: 1rem;
+  text-transform: none;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.payment-method-button.swish {
+  border-color: #ABE661;
+  color: #2C6307;
+}
+
+.payment-method-button.swish.selected {
+  background-color: #ABE661;
+  color: #2C6307;
+}
+
+.payment-method-button img {
+  margin-right: 8px;
+}
+
+/* Add these new styles */
+.landing-hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.feature-card {
+  transition: transform 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+}
+
+.cta-button {
+  transition: all 0.3s ease;
+  letter-spacing: 1px;
+}
+
+.cta-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}

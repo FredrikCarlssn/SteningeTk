@@ -1,0 +1,1 @@
+export const HOURLY_PRICE_IN_SEK = 80;
