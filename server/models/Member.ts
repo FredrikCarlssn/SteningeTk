@@ -8,12 +8,15 @@ const memberSchema = new mongoose.Schema({
   },
   yearlySlots: [{
     year: Number,
-    usedSlots: {
+    usedSlots: [{
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Slot',
-      default: []
-    }
-  }]
+      ref: 'Slot'
+    }]
+  }],
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
 });
 
 export default mongoose.model('Member', memberSchema);

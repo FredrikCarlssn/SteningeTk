@@ -37,6 +37,30 @@ export const translations = {
       required: "Obligatoriskt fält",
       invalidEmail: "Ogiltig e-postadress",
       invalidPhone: "Ogiltigt telefonnummer"
+    },
+    confirmation: {
+      title: "Bokningsbekräftelse",
+      successMessage: "Din bokning har bekräftats!",
+      bookingDetails: "Bokningsdetaljer",
+      date: "Datum",
+      time: "Tid",
+      court: "Bana",
+      paymentDetails: "Betalningsdetaljer",
+      amount: "Belopp",
+      status: "Status",
+      contactDetails: "Kontaktinformation",
+      name: "Namn",
+      email: "E-post",
+      phone: "Telefon",
+      bookingId: "Boknings-ID",
+      returnHome: "Tillbaka till startsidan"
+    },
+    payment: {
+      status: {
+        completed: "Slutförd",
+        pending: "Väntande",
+        cancelled: "Avbruten"
+      }
     }
   },
   en: {
@@ -77,6 +101,30 @@ export const translations = {
       required: "Required field",
       invalidEmail: "Invalid email address",
       invalidPhone: "Invalid phone number"
+    },
+    confirmation: {
+      title: "Booking Confirmation",
+      successMessage: "Your booking has been confirmed!",
+      bookingDetails: "Booking Details",
+      date: "Date",
+      time: "Time",
+      court: "Court",
+      paymentDetails: "Payment Details",
+      amount: "Amount",
+      status: "Status",
+      contactDetails: "Contact Information",
+      name: "Name",
+      email: "Email",
+      phone: "Phone",
+      bookingId: "Booking ID",
+      returnHome: "Return to homepage"
+    },
+    payment: {
+      status: {
+        completed: "Completed",
+        pending: "Pending",
+        cancelled: "Cancelled"
+      }
     }
   }
 }; 

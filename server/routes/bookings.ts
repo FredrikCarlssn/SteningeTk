@@ -1,16 +1,18 @@
-import express, { NextFunction } from 'express';
+import { Router, Request, Response } from 'express';
 import { Booking } from '../models/Booking';
 import { endOfDay } from 'date-fns';
-import { Request, Response } from 'express';
 import { HOURLY_PRICE_IN_SEK } from '../const';
 import { Slot } from '../models/Slot';
 import crypto from 'crypto';
-import { Member } from '../models/Member';
+import Member from '../models/Member';
+import mongoose from 'mongoose';
+import stripe from '../services/stripe';
+import { sendBookingConfirmation } from '../services/email';
 
-const router = express.Router();
+const router = Router();
 
 // Get available time slots
-router.get('/availability', async (req, res) => {
+router.get('/availability', async (req: Request, res: Response) => {
   const { date, courtNumber } = req.query;
   const localDate = new Date(date as string);
   localDate.setHours(0, 0, 0, 0);
@@ -81,13 +83,22 @@ router.post('/', async (req: Request, res: Response) => {
     // Check member status and remaining slots
     const currentYear = new Date().getFullYear();
     const member = await Member.findOne({ email: user.email });
-    const yearlySlots = member?.yearlySlots.find((year: { year: number }) => year.year === currentYear);
-    if (!yearlySlots) {
-      member.yearlySlots.push({ year: currentYear, usedSlots: [] });
-      await member.save();
+    let slotsRemaining = 0;
+
+    if (member) {
+      const yearlySlot = member.yearlySlots.find(year => year.year === currentYear);
+      if (!yearlySlot) {
+        member.yearlySlots.push({ year: currentYear, usedSlots: [] });
+        await member.save();
+        const newYearlySlot = member.yearlySlots.find(year => year.year === currentYear);
+        if (newYearlySlot) {
+          slotsRemaining = 10 - newYearlySlot.usedSlots.length;
+        }
+      } else {
+        slotsRemaining = 10 - yearlySlot.usedSlots.length;
+      }
     }
 
-    const slotsRemaining = 10 - yearlySlots.usedSlots.length;
     const freeSlots = Math.min(slotDocuments.length, slotsRemaining);
     const paidSlots = slotDocuments.length - freeSlots;
 
@@ -112,7 +123,7 @@ router.post('/', async (req: Request, res: Response) => {
 
     // Update slots based on payment status
     const slotUpdate = {
-      status: amount === 0 ? 'booked' : 'pending',
+      status: paidSlots === 0 ? 'booked' : 'pending',
       booking: newBooking._id
     };
     
@@ -120,6 +131,33 @@ router.post('/', async (req: Request, res: Response) => {
       { _id: { $in: slotDocuments.map(s => s._id) } },
       { $set: slotUpdate }
     );
+
+    // Send confirmation email for member bookings (free slots)
+    if (paidSlots === 0 && newBooking.payment) {
+      try {
+        await sendBookingConfirmation({
+          bookingId: newBooking._id.toString(),
+          userName: user.name,
+          userEmail: user.email,
+          date: newBooking.date,
+          slots: slotDocuments.map(slot => ({
+            start: slot.start,
+            end: slot.end,
+            courtNumber: slot.courtNumber
+          })),
+          payment: {
+            status: newBooking.payment.status,
+            amount: newBooking.payment.amount,
+            method: newBooking.payment.method || undefined,
+            paymentId: newBooking.payment.paymentId || undefined
+          },
+          cancellationToken: newBooking.cancellationToken
+        });
+      } catch (emailError) {
+        console.error('Failed to send confirmation email:', emailError);
+        // Don't throw the error, just log it
+      }
+    }
 
     res.status(201).json({ 
       message: `Booking created with ${slotDocuments.length} slot(s)`,
@@ -141,6 +179,13 @@ router.get('/:id', async (req: Request<{ id: string }>, res: Response) => {
       return res.status(404).json({ message: 'Booking not found' });
     }
 
+    const payment = booking.payment || {
+      status: 'pending',
+      amount: 0,
+      method: 'free',
+      paymentId: undefined
+    };
+
     res.json({
       id: booking._id,
       date: booking.date,
@@ -151,51 +196,43 @@ router.get('/:id', async (req: Request<{ id: string }>, res: Response) => {
         status: slot.status
       })),
       user: booking.user,
-      payment: {
-        status: booking.payment?.status,
-        amount: booking.payment?.amount,
-        method: booking.payment?.method,
-        paymentId: booking.payment?.paymentId
-      },
-      createdAt: booking.createdAt
+      payment
     });
   } catch (error) {
     console.error('Error fetching booking:', error);
-    res.status(500).json({ message: 'Error retrieving booking' });
+    res.status(500).json({ message: 'Error fetching booking' });
   }
 });
 
 router.post('/:id/cancel', async (req: Request<{ id: string }>, res: Response) => {
   try {
-    const { token } = req.query;
     const booking = await Booking.findById(req.params.id);
+    
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
 
-    if (!booking) return res.status(404).json({ message: 'Booking not found' });
-    if (booking.cancellationToken !== token) return res.status(401).json({ message: 'Invalid token' });
+    if (!booking.payment) {
+      return res.status(400).json({ message: 'Booking has no payment information' });
+    }
+
+    if (booking.payment.status === 'completed') {
+      return res.status(400).json({ message: 'Cannot cancel a completed booking' });
+    }
 
     // Update booking status
-    const updatedBooking = await Booking.findByIdAndUpdate(
-      req.params.id,
-      { 'payment.status': 'cancelled' },
-      { new: true }
-    );
+    booking.payment.status = 'cancelled';
+    await booking.save();
 
-    // Free up slots
+    // Update slots status
     await Slot.updateMany(
-      { booking: booking._id },
+      { _id: { $in: booking.slots } },
       { $set: { status: 'available' } }
     );
 
-    // Initiate Stripe refund (if payment was completed)
-    if (booking.payment.status === 'completed' && booking.payment.paymentId) {
-      await stripe.refunds.create({
-        payment_intent: booking.payment.paymentId,
-      });
-    }
-
-    res.json({ message: 'Booking cancelled successfully', booking: updatedBooking });
+    res.json({ message: 'Booking cancelled successfully' });
   } catch (error) {
-    console.error('Cancellation error:', error);
+    console.error('Error cancelling booking:', error);
     res.status(500).json({ message: 'Error cancelling booking' });
   }
 });

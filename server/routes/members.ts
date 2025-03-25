@@ -1,7 +1,13 @@
 import express from 'express';
-import { Member } from '../models/Member'; // We'll create this model
+import Member from '../models/Member';
 
 const router = express.Router();
+
+interface YearlySlot {
+  year: number;
+  usedSlots: any[];
+}
+
 // Check if user is a member & how many slots they have remaining
 router.get('/:email', async (req, res) => {
   try {
@@ -10,13 +16,20 @@ router.get('/:email', async (req, res) => {
     const currentYear = new Date().getFullYear();
     const member = await Member.findOne({ email });
     if (!member) {
-      return res.status(404).json({ error: 'Member not found' });
+      return res.json({
+        isMember: false,
+        slotsRemaining: 0
+      });
     }
     // Check yearly slots - > if current year is not in the array, add it, else return the number of used slots/ slots length 
-    const yearlySlots = member.yearlySlots.find((year: { year: number }) => year.year === currentYear);
+    const yearlySlots = member.yearlySlots.find((slot) => slot.year === currentYear);
     if (!yearlySlots) {
       member.yearlySlots.push({ year: currentYear, usedSlots: [] });
       await member.save();
+      return res.json({
+        isMember: true,
+        slotsRemaining: 10
+      });
     }
     res.json({
       isMember: true,

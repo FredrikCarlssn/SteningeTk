@@ -11,6 +11,7 @@ import axios from 'axios'
 import { Alert, Typography, Box, Button } from '@mui/material'
 import LandingPage from './components/LandingPage'
 import { useTranslation } from './hooks/useTranslation'
+import Confirmation from './components/Confirmation'
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
 
@@ -41,6 +42,7 @@ function App() {
         <Route path="/booking" element={<MainAppContent />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/return" element={<ReturnHandler />} />
+        <Route path="/confirmation/:id" element={<Confirmation />} />
       </Routes>
     </div>
   )

@@ -10,7 +10,9 @@ import {
   Typography,
   TextField,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  SxProps,
+  Theme
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import type { Slot } from '../types';
@@ -20,16 +22,17 @@ import { fetchAvailability } from '../services/fetchAvailability';
 import { createBooking } from '../services/createBooking';
 import { initiatePayment } from '../services/initiatePayment';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { useTranslation } from '../hooks/useTranslation';
 
 
 interface BookingFormProps {
   courtNumber: 1 | 2;
   date: Date;
+  sx?: SxProps<Theme>;
 }
 
-function BookingForm({ courtNumber, date: initialDate }: BookingFormProps) {
+function BookingForm({ courtNumber, date: initialDate, sx }: BookingFormProps) {
   const { t } = useTranslation();
   const [date, setDate] = useState<Date>(initialDate);
   const [selectedSlots, setSelectedSlots] = useState<Slot[]>([]);
@@ -83,7 +86,9 @@ function BookingForm({ courtNumber, date: initialDate }: BookingFormProps) {
           setIsMember(response.data.isMember);
           setMemberSlotsAvailable(response.data.slotsRemaining);
         } catch (error) {
-          console.error('Error checking member status:', error);
+          if (!(error instanceof AxiosError && error.response?.status === 404)) {
+            console.error('Error checking member status:', error);
+          }
           setIsMember(false);
           setMemberSlotsAvailable(0);
         }
@@ -181,7 +186,8 @@ function BookingForm({ courtNumber, date: initialDate }: BookingFormProps) {
       borderRadius: '16px',
       border: '1px solid rgba(255,255,255,0.15)',
       boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-      my: 4
+      my: 4,
+      ...sx
     }}>
       {loading && <LinearProgress sx={{ mb: 2 }} />}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -244,9 +250,9 @@ function BookingForm({ courtNumber, date: initialDate }: BookingFormProps) {
                 {t('booking.selectedTimes')}
               </Typography>
               {selectedSlots.map((slot, index) => (
-                <div>
+                <div key={index+"g2"}>
                   {format(slot.start, 'HH:mm')} - {format(new Date(slot.start.getTime() + 60 * 60 * 1000), 'HH:mm')}
-                  </div>
+                </div>
               ))}
               <div>
               <Typography variant="body1" sx={{ mt: 1, fontWeight: "bold"
