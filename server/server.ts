@@ -39,6 +39,7 @@ app.use('/api/members', membersRouter);
 
 // 404 Handler
 app.use((req, res) => {
+  console.log(`404 Not Found: ${req.method} ${req.url}`);
   res.status(404).json({ message: 'Not Found' });
 });
 
