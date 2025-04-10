@@ -1,4 +1,4 @@
-import axios from 'axios';
+import apiClient from "./api";
 import { Slot, User, Booking } from '../types';
 
 export const createBooking = async (
@@ -7,7 +7,7 @@ export const createBooking = async (
   isUnder20: boolean,
   language: 'sv' | 'en' = 'sv'
 ) => {
-  const response = await axios.post<{ booking: Booking }>('/api/bookings', {
+  const response = await apiClient.post<{ booking: Booking }>('/api/bookings', {
     slots,
     user,
     isUnder20,
