@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "vite",
-    "build": "tsc",
+    "build": "npm install && tsc",
     "lint": "eslint .",
     "preview": "vite preview",
     "start": "ts-node-dev --respawn --transpile-only ./server.ts",
@@ -14,7 +14,8 @@
     "@types/dotenv": "^8.2.0",
     "@types/express": "^4.17.21",
     "@types/nodemailer": "^6.4.17",
-    "ts-node-dev": "^2.0.0"
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "@types/date-fns": "^2.6.3",
