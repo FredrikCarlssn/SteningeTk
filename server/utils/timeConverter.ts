@@ -1,7 +1,7 @@
 /**
  * Time conversion utility for Swedish local time
  */
-import { format, formatInTimeZone, zonedTimeToUtc } from 'date-fns-tz';
+import { format, formatInTimeZone } from 'date-fns-tz';
 
 // Swedish timezone is 'Europe/Stockholm'
 const SWEDISH_TIMEZONE = 'Europe/Stockholm';
