@@ -7,6 +7,7 @@ import bookingRoutes from './routes/bookings';
 import paymentRoutes from './routes/payments';
 import path from 'path';
 import membersRouter from './routes/members';
+import { convertDocumentDatesToSwedishTime } from './utils/timeConverter';
 
 // Add validation for CLIENT_URL
 if (!process.env.CLIENT_URL) {
@@ -29,6 +30,29 @@ app.use(express.json());
 mongoose.connect(process.env.MONGO_URI!)
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
+
+// Time conversion middleware
+app.use((req, res, next) => {
+  // Store the original res.json function
+  const originalJson = res.json;
+  
+  // Override the res.json function
+  res.json = function(body) {
+    // Convert date fields in the response to Swedish time
+    const dateFields = ['date', 'start', 'end', 'createdAt', 'updatedAt'];
+    
+    if (Array.isArray(body)) {
+      body = body.map(item => convertDocumentDatesToSwedishTime(item, dateFields));
+    } else {
+      body = convertDocumentDatesToSwedishTime(body, dateFields);
+    }
+    
+    // Call the original res.json with the converted data
+    return originalJson.call(this, body);
+  };
+  
+  next();
+});
 
 // Routes
 app.use('/api/bookings', bookingRoutes);
