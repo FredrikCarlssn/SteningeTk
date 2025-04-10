@@ -16,7 +16,7 @@ if (!process.env.CLIENT_URL) {
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware - More permissive CORS for development
+// Middleware - Allow only the CLIENT_URL origin
 app.use(cors({
   origin: process.env.CLIENT_URL, // Use the client URL from environment variable
   credentials: true, // Allow cookies/auth headers

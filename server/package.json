@@ -2,11 +2,11 @@
   "name": "server",
   "version": "1.0.0",
   "scripts": {
-    "dev": "vite",
+    "dev": "ts-node-dev --respawn --transpile-only ./server.ts",
     "build": "npm install && tsc",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "ts-node-dev --respawn --transpile-only ./server.ts",
+    "start": "node ./build/server.js",
     "prod": "node ./build/server.js"
   },
   "devDependencies": {
