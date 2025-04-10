@@ -1,8 +1,7 @@
 /**
  * Time conversion utility for Swedish local time
  */
-import { format, formatInTimeZone } from 'date-fns-tz';
-import { addHours } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 // Swedish timezone is 'Europe/Stockholm'
 const SWEDISH_TIMEZONE = 'Europe/Stockholm';
@@ -17,12 +16,13 @@ export function convertToSwedishTime(date: Date | string): string {
   
   const inputDate = typeof date === 'string' ? new Date(date) : date;
   
-  // Adjust the time by adding 2 hours to correct for the timezone difference
-  // Sweden is UTC+2 during summer time (DST)
-  const adjustedDate = addHours(inputDate, 2);
-  
-  // Format without timezone information
-  return format(adjustedDate, "yyyy-MM-dd'T'HH:mm:ss.SSS");
+  // Use formatInTimeZone to properly handle the conversion to Swedish time
+  // The format string creates a date string without the Z suffix
+  return formatInTimeZone(
+    inputDate,
+    SWEDISH_TIMEZONE,
+    "yyyy-MM-dd'T'HH:mm:ss.SSS"
+  );
 }
 
 /**

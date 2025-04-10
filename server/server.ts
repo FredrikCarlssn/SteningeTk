@@ -44,10 +44,28 @@ app.use((req, res, next) => {
       'slots.start', 'slots.end', // For nested slot arrays
     ];
     
+    // For debugging - log the original and converted times if they exist
+    if (process.env.NODE_ENV !== 'production') {
+      if (Array.isArray(body) && body.length > 0 && body[0].start) {
+        console.log('BEFORE - First item start time:', body[0].start);
+      } else if (body && body.start) {
+        console.log('BEFORE - Start time:', body.start);
+      }
+    }
+    
     if (Array.isArray(body)) {
       body = body.map(item => convertDocumentDatesToSwedishTime(item, dateFields));
     } else {
       body = convertDocumentDatesToSwedishTime(body, dateFields);
+    }
+    
+    // For debugging - log after conversion
+    if (process.env.NODE_ENV !== 'production') {
+      if (Array.isArray(body) && body.length > 0 && body[0].start) {
+        console.log('AFTER - First item start time:', body[0].start);
+      } else if (body && body.start) {
+        console.log('AFTER - Start time:', body.start);
+      }
     }
     
     // Call the original res.json with the converted data
