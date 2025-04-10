@@ -16,10 +16,12 @@ if (!process.env.CLIENT_URL) {
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware
+// Middleware - More permissive CORS for development
 app.use(cors({
-  origin: [process.env.CLIENT_URL || 'http://localhost:5173', 'https://steningetk.onrender.com'],
-  credentials: true
+  origin: process.env.CLIENT_URL, // Use the client URL from environment variable
+  credentials: true, // Allow cookies/auth headers
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
