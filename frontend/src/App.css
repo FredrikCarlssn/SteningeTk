@@ -1,95 +1,316 @@
 #root {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 0;
   text-align: center;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* ===== Layout Styles ===== */
+.page-container {
+  padding: 2rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-@keyframes logo-spin {
+.card {
+  background-color: var(--surface-color);
+  border-radius: var(--border-radius);
+  padding: 2rem;
+  box-shadow: var(--box-shadow);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  transition: var(--transition);
+}
+
+.card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* ===== Header & Navigation ===== */
+.app-header {
+  padding: 1.5rem 2rem;
+  background-color: var(--surface-color);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.language-selector {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.language-button {
+  background-color: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.language-button.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+/* ===== Form Elements ===== */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text-color);
+  text-align: left;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  font-size: 1rem;
+  transition: var(--transition);
+  background-color: var(--surface-color);
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+/* ===== Buttons ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 1rem;
+  border: none;
+}
+
+.btn-primary {
+  background: linear-gradient(
+    45deg,
+    var(--primary-color) 0%,
+    var(--primary-dark) 100%
+  );
+  color: white;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.25);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.35);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+}
+
+.btn-secondary:hover {
+  background-color: rgba(76, 175, 80, 0.05);
+}
+
+.btn-large {
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
+}
+
+.btn-small {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+/* ===== Animations ===== */
+@keyframes fadeIn {
   from {
-    transform: rotate(0deg);
+    opacity: 0;
+    transform: translateY(10px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.pulse-animation {
+  animation: pulse 1.5s infinite;
+}
+
+/* Time slot animations */
+.time-slot.selected {
+  position: relative;
+  overflow: hidden;
+}
+
+.time-slot.selected::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle,
+    transparent 20%,
+    var(--primary-light) 20%,
+    var(--primary-light) 80%,
+    transparent 80%,
+    transparent
+  );
+  background-position: center;
+  background-size: 0%;
+  opacity: 0.6;
+  animation: rippleEffect 0.6s ease-out;
+}
+
+@keyframes rippleEffect {
+  0% {
+    background-size: 0%;
+    opacity: 0.6;
+  }
+  100% {
+    background-size: 150%;
+    opacity: 0;
+  }
+}
+
+/* Booking confirmed animation */
+.booking-confirmed {
+  position: relative;
+  overflow: hidden;
+}
+
+.booking-confirmed::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(76, 175, 80, 0.2),
+    transparent
+  );
+  animation: shine 1.5s infinite;
+}
+
+@keyframes shine {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Court toggle animation */
+.court-toggle-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.court-toggle-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.court-toggle-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.court-toggle-exit-active {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Loading animation */
+.loading-spinner {
+  display: inline-block;
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: var(--primary-color);
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+/* Responsive styles */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 1.5rem;
+  }
+
+  .card {
+    padding: 1.5rem;
+  }
+
+  .btn-large {
+    padding: 0.875rem 1.75rem;
+    font-size: 1rem;
   }
 }
 
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-
-/* Modify existing animations to use color instead of transform */
-.button-loading {
-  animation: color-pulse 1s ease-in-out infinite;
-  /* Instead of transform: scale() */
-}
-
-/* Add hover transition example */
-.booking-button {
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-.booking-button:hover {
-  background-color: var(--secondary-color);
-  color: white;
-}
-
-/* Add new animations */
-@keyframes pulse-selection {
-  0% {
-    background-color: rgba(25, 118, 210, 0.6);
+@media (max-width: 480px) {
+  .page-container {
+    padding: 1rem;
   }
-  50% {
-    background-color: rgba(25, 118, 210, 1);
-  }
-  100% {
-    background-color: rgba(25, 118, 210, 0.6);
-  }
-}
 
-@keyframes confirm-pulse {
-  0% {
-    background-color: #1565c0;
+  .card {
+    padding: 1.25rem;
   }
-  50% {
-    background-color: #15c054;
+
+  .form-control {
+    padding: 0.75rem;
   }
-  100% {
-    background-color: #0d47a1;
+
+  .btn {
+    padding: 0.625rem 1.25rem;
   }
-}
-
-.pulsating-slot {
-  animation: pulse-selection 1.5s ease-in-out infinite;
-}
-
-.preview-slot {
-  background-color: rgba(25, 118, 210, 0.2) !important;
-}
-
-.confirmed-slot {
-  animation: confirm-pulse 0.8s ease-out forwards;
 }

@@ -13,9 +13,17 @@ import {
   FormControlLabel,
   Checkbox,
   SxProps,
-  Theme
+  Theme,
+  Box,
+  Divider,
+  Chip
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import PersonIcon from '@mui/icons-material/Person';
+import EmailIcon from '@mui/icons-material/Email';
+import PhoneIcon from '@mui/icons-material/Phone';
 import type { Slot } from '../types';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
@@ -23,7 +31,6 @@ import { fetchAvailability } from '../services/fetchAvailability';
 import { createBooking } from '../services/createBooking';
 import axios, { AxiosError } from 'axios';
 import { useTranslation } from '../hooks/useTranslation';
-
 
 interface BookingFormProps {
   courtNumber: 1 | 2;
@@ -172,197 +179,279 @@ function BookingForm({ courtNumber, date: initialDate, sx }: BookingFormProps) {
     }
   };
 
-  const slotStyle = {
-    fontSize: '1.2rem',
-    color: 'black',
-    border: '1px solid rgba(0,0,0,0.1)',
-    padding: '0.5rem',
-    margin: '0.2rem',
-    borderRadius: '4px',
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    cursor: 'pointer'
-  };
-
-  const selectedSlotStyle = {
-    ...slotStyle,
-    backgroundColor: 'rgba(76,175,80,0.2)',
-  };
-  
-  const pastSlotStyle = {
-    ...slotStyle,
-    backgroundColor: 'rgba(200,200,200,0.5)',
-    color: 'rgba(0,0,0,0.4)',
-    cursor: 'not-allowed'
-  };
-
   return (
-    <Container maxWidth="md" className="booking-interface" sx={{ 
-      py: 4,
-      backdropFilter: 'blur(12px)',
-      backgroundColor: 'rgba(255,255,255,0.1)',
-      borderRadius: '16px',
-      border: '1px solid rgba(255,255,255,0.15)',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-      my: 4,
-      ...sx
-    }}>
-      {loading && <LinearProgress sx={{ mb: 2 }} />}
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+    <Paper elevation={0} className="booking-form card" sx={{p: 4, ...sx}}>
+      {/* Date Selection Section */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h6" component="h2" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <CalendarTodayIcon fontSize="small" />
+          {t('booking.selectDate')}
+        </Typography>
+        <DatePicker
+          selected={date}
+          onChange={(date: Date | null) => date && setDate(date)}
+          dateFormat="yyyy-MM-dd"
+          minDate={new Date()}
+          locale={dateLocale}
+          inline
+          className="date-picker"
+        />
+      </Box>
       
-      <DatePicker
-        selected={date}
-        onChange={(newDate: Date | null) => newDate && setDate(newDate)}
-        dateFormat="yyyy-MM-dd"
-        minDate={new Date()}
-        className="date-picker"
-        locale={dateLocale}
-        customInput={
-          <Button variant="outlined" fullWidth sx={{ mb: 2 }}>
-            {date ? format(date, 'yyyy-MM-dd', { locale: dateLocale }) : t('booking.selectDate')}
-          </Button>
-        }
-      />
+      <Divider sx={{ my: 3 }}>
+        <Chip 
+          label={t('booking.availableTimes')} 
+          sx={{ 
+            backgroundColor: 'var(--primary-light)', 
+            color: 'var(--text-color)',
+            fontWeight: 500
+          }} 
+        />
+      </Divider>
       
-      <Grid container spacing={1} sx={{ mb: 4 }}>
-        {slots.map((slot, index) => {
-          const isPastSlot = slot.isPast || false;
-          return (
-            <Grid item xs={2} key={index}>
-              <Button
-                fullWidth
-                variant={selectedSlots.some(s => 
-                  s.start.getTime() === slot.start.getTime()
-                ) ? 'contained' : 'outlined'}
-                color={isPastSlot ? 'inherit' : (slot.available ? 'primary' : 'error')}
-                onClick={() => handleSlotClick(slot)}
-                disabled={!slot.available || isPastSlot}
-                sx={
-                  isPastSlot 
-                    ? pastSlotStyle 
-                    : (selectedSlots.some(s => s.start.getTime() === slot.start.getTime()) 
-                        ? selectedSlotStyle 
-                        : slotStyle)
-                }
-              >
-                {format(slot.start, 'HH:mm', { locale: dateLocale })}
-              </Button>
-            </Grid>
-          );
-        })}
-      </Grid>
-      
-      {selectedSlots.length > 0 && (
-        <Paper elevation={3} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-            <CheckCircleIcon color="success" sx={{ mr: 1 }} />
-            {t('booking.title')}
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={6}>
-              <Typography variant="body1" sx={{fontWeight: "bold"}}>
-                {t('booking.court')}:
-              </Typography>
-              {courtNumber}
-              <div>
-              <Typography variant="body1" sx={{fontWeight: "bold"}}>
-                {t('booking.date')}:
-              </Typography>
-              {format(date, 'PPP', { locale: dateLocale })}
-              </div>
-            </Grid>
-            <Grid item xs={6}>
-              <Typography variant="body1" sx={{fontWeight: "bold"}}>
-                {t('booking.selectedTimes')}
-              </Typography>
-              {selectedSlots.map((slot, index) => (
-                <div key={index+"g2"}>
-                  {format(slot.start, 'HH:mm', { locale: dateLocale })} - {format(new Date(slot.start.getTime() + 60 * 60 * 1000), 'HH:mm', { locale: dateLocale })}
-                </div>
-              ))}
-              <div>
-              <Typography variant="body1" sx={{ mt: 1, fontWeight: "bold"
-               }}>
-               {t('booking.totalPlaytime')}:
-            
-              </Typography>
-              {selectedSlots.length}H
-              </div>
-              <div>
-              <Typography variant="body1" sx={{ mt: 1, fontWeight: "bold"
-               }}>
-               {t('booking.price')}:
-            
-              </Typography>
-              {isMember && memberSlotsAvailable > 0 && (
-                <div>
-                  {t('booking.freeSlots')}: {Math.min(selectedSlots.length, memberSlotsAvailable)} × 0 kr<br/>
-                </div>
-              )}
-              {calculateTotalPrice().paidSlots > 0 && (
-                <div>
-                  {t('booking.paidSlots')}: {calculateTotalPrice().paidSlots} × 80 kr
-                  {isUnder20 && ' × 50%'}
-                </div>
-              )}
-              <div style={{ marginTop: '8px' }}>
-                {t('booking.total')}: {calculateTotalPrice().total} kr
-              </div>
-              </div>
-            </Grid>
+      {/* Time Slots Section */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h6" component="h2" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AccessTimeIcon fontSize="small" />
+          {t('booking.selectTime')}
+        </Typography>
+        
+        {loading ? (
+          <Box sx={{ my: 3 }}>
+            <LinearProgress sx={{ height: 6, borderRadius: 3 }} />
+            <Typography variant="body2" sx={{ mt: 1, textAlign: 'center', color: 'var(--text-secondary)' }}>
+              {t('booking.loadingAvailability')}
+            </Typography>
+          </Box>
+        ) : error ? (
+          <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>
+        ) : (
+          <Grid container spacing={2} className="time-grid">
+            {slots.map((slot, index) => {
+              const startTime = format(slot.start, 'HH:mm');
+              const endTime = format(slot.end, 'HH:mm');
+              const isSelected = selectedSlots.some(s => s.start.getTime() === slot.start.getTime());
+              const isDisabled = !slot.available || slot.isPast;
+              
+              return (
+                <Grid item xs={4} sm={3} md={2} key={index}>
+                  <Button
+                    fullWidth
+                    variant={isSelected ? "contained" : "outlined"}
+                    onClick={() => !isDisabled && handleSlotClick(slot)}
+                    disabled={isDisabled}
+                    className={`time-slot ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
+                    sx={{
+                      borderRadius: 'var(--border-radius)',
+                      padding: '12px 8px',
+                      backgroundColor: isSelected ? 'var(--primary-light)' : 'transparent',
+                      color: isSelected ? 'var(--text-color)' : isDisabled ? 'var(--text-secondary)' : 'var(--text-color)',
+                      border: `1px solid ${isSelected ? 'var(--primary-color)' : isDisabled ? 'rgba(0,0,0,0.08)' : 'rgba(0,0,0,0.12)'}`,
+                      transition: 'var(--transition)',
+                      '&:hover': {
+                        backgroundColor: isSelected ? 'var(--primary-light)' : !isDisabled ? 'rgba(0,0,0,0.04)' : undefined,
+                        transform: !isDisabled ? 'translateY(-2px)' : undefined
+                      }
+                    }}
+                  >
+                    {startTime} - {endTime}
+                    {isSelected && <CheckCircleIcon sx={{ ml: 1, fontSize: 16, color: 'var(--primary-dark)' }} />}
+                  </Button>
+                </Grid>
+              );
+            })}
           </Grid>
+        )}
+
+        {selectedSlots.length > 0 && (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" sx={{ color: 'var(--primary-dark)', fontWeight: 500 }}>
+              {t('booking.selected', { count: selectedSlots.length })}
+            </Typography>
+          </Box>
+        )}
+      </Box>
+
+      {selectedSlots.length > 0 && (
+        <>
+          <Divider sx={{ my: 3 }}>
+            <Chip 
+              label={t('booking.yourInformation')} 
+              sx={{ 
+                backgroundColor: 'var(--primary-light)', 
+                color: 'var(--text-color)',
+                fontWeight: 500
+              }} 
+            />
+          </Divider>
           
-          <Grid container spacing={2} sx={{ mt: 2 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label={t('booking.name')}
-                value={userInfo.name}
-                onChange={(e) => setUserInfo({...userInfo, name: e.target.value})}
-                sx={{ mb: 2 }}
-              />
-              <TextField
-                fullWidth
-                label={t('booking.email')}
-                type="email"
-                value={userInfo.email}
-                onChange={(e) => setUserInfo({...userInfo, email: e.target.value})}
-                sx={{ mb: 2 }}
-                error={!!error && error.includes('email')}
-                helperText={error.includes('email') && t('form.invalidEmail')}
-              />
-              <TextField
-                fullWidth
-                label={t('booking.phone')}
-                type="tel"
-                value={userInfo.phone}
-                onChange={(e) => setUserInfo({...userInfo, phone: e.target.value})}
-                error={!!error && error.includes('phone')}
-                helperText={error.includes('phone') && t('form.invalidPhone')}
-              />
+          {/* User Information Form */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h6" component="h2" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <PersonIcon fontSize="small" />
+              {t('booking.contactDetails')}
+            </Typography>
+            
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label={t('form.name')}
+                  value={userInfo.name}
+                  onChange={(e) => setUserInfo({...userInfo, name: e.target.value})}
+                  variant="outlined"
+                  required
+                  InputProps={{
+                    sx: { 
+                      borderRadius: 'var(--border-radius)'
+                    }
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label={t('form.email')}
+                  value={userInfo.email}
+                  onChange={(e) => setUserInfo({...userInfo, email: e.target.value})}
+                  variant="outlined"
+                  required
+                  type="email"
+                  InputProps={{
+                    sx: { 
+                      borderRadius: 'var(--border-radius)'
+                    }
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label={t('form.phone')}
+                  value={userInfo.phone}
+                  onChange={(e) => setUserInfo({...userInfo, phone: e.target.value})}
+                  variant="outlined"
+                  required
+                  InputProps={{
+                    sx: { 
+                      borderRadius: 'var(--border-radius)'
+                    }
+                  }}
+                />
+              </Grid>
               <Grid item xs={12}>
                 <FormControlLabel
-                  control={<Checkbox 
-                    checked={isUnder20} 
-                    onChange={(e) => setIsUnder20(e.target.checked)}
-                  />}
-                  label={t('booking.under20')}
+                  control={
+                    <Checkbox
+                      checked={isUnder20}
+                      onChange={(e) => setIsUnder20(e.target.checked)}
+                      sx={{ 
+                        color: 'var(--primary-color)',
+                        '&.Mui-checked': {
+                          color: 'var(--primary-color)',
+                        }
+                      }}
+                    />
+                  }
+                  label={t('form.under20')}
                 />
               </Grid>
             </Grid>
-          </Grid>
+          </Box>
           
-          <Button
-            fullWidth
-            variant="contained"
-            size="large"
-            onClick={handleBooking}
-            sx={{ mt: 2, py: 1.5, fontSize: '1.1rem' }}
-          >
-            {t('booking.confirm')} {selectedSlots.length} {t(selectedSlots.length === 1 ? 'booking.hour' : 'booking.hours')}
-          </Button>
-        </Paper>
+          {/* Booking Summary */}
+          <Box className="booking-summary" sx={{ p: 3, borderRadius: 'var(--border-radius)' }}>
+            <Typography variant="h6" component="h2" sx={{ mb: 2, fontWeight: 600 }}>
+              {t('booking.summary')}
+            </Typography>
+            
+            <Grid container spacing={2}>
+              <Grid item xs={6} md={4}>
+                <Typography variant="body2" color="text.secondary">
+                  {t('booking.court')}:
+                </Typography>
+                <Typography variant="body1" fontWeight={500}>
+                  {t(`courts.court${courtNumber}`)}
+                </Typography>
+              </Grid>
+              <Grid item xs={6} md={4}>
+                <Typography variant="body2" color="text.secondary">
+                  {t('booking.date')}:
+                </Typography>
+                <Typography variant="body1" fontWeight={500}>
+                  {format(date, 'yyyy-MM-dd')}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <Typography variant="body2" color="text.secondary">
+                  {t('booking.time')}:
+                </Typography>
+                <Typography variant="body1" fontWeight={500}>
+                  {selectedSlots.length > 0 && `${format(selectedSlots[0].start, 'HH:mm')} - ${format(selectedSlots[selectedSlots.length - 1].end, 'HH:mm')}`}
+                </Typography>
+              </Grid>
+            </Grid>
+            
+            <Divider sx={{ my: 2 }} />
+            
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+              <Typography variant="body1">{t('booking.totalDuration')}:</Typography>
+              <Typography variant="body1" fontWeight={600}>
+                {selectedSlots.length} {t('booking.hours', { count: selectedSlots.length })}
+              </Typography>
+            </Box>
+            
+            {isMember && memberSlotsAvailable > 0 && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography variant="body1">{t('booking.memberDiscount')}:</Typography>
+                <Typography variant="body1" fontWeight={600} color="success.main">
+                  -{Math.min(selectedSlots.length, memberSlotsAvailable)} {t('booking.freeHours')}
+                </Typography>
+              </Box>
+            )}
+            
+            {isUnder20 && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography variant="body1">{t('booking.youthDiscountLabel')}</Typography>
+                <Typography variant="body1" fontWeight={600} color="success.main">
+                  -50% {t('booking.onThePrice')}
+                </Typography>
+              </Box>
+            )}
+            
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+              <Typography variant="h6">{t('booking.totalPrice')}:</Typography>
+              <Typography variant="h6" fontWeight={700} color="primary">
+                {calculateTotalPrice().total} kr
+              </Typography>
+            </Box>
+            
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={handleBooking}
+              disabled={loading || selectedSlots.length === 0}
+              className="cta-button"
+              sx={{ 
+                mt: 3,
+                py: 1.5,
+                fontWeight: 600,
+                borderRadius: 'var(--border-radius)',
+                background: 'linear-gradient(45deg, var(--primary-color) 0%, var(--primary-dark) 100%)'
+              }}
+            >
+              {loading ? t('booking.processing') : t('booking.bookNow')}
+            </Button>
+            
+            {error && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {error}
+              </Alert>
+            )}
+          </Box>
+        </>
       )}
-    </Container>
+    </Paper>
   );
 }
 
