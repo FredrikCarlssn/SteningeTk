@@ -1,7 +1,8 @@
 /**
  * Time conversion utility for Swedish local time
  */
-import { format, formatInTimeZone } from 'date-fns-tz';
+import { format, formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { addHours } from 'date-fns';
 
 // Swedish timezone is 'Europe/Stockholm'
 const SWEDISH_TIMEZONE = 'Europe/Stockholm';
@@ -9,21 +10,18 @@ const SWEDISH_TIMEZONE = 'Europe/Stockholm';
 /**
  * Converts a UTC date to Swedish local time
  * @param date - Date object or string to convert
- * @returns Date object in Swedish local time
+ * @returns String representing the date in Swedish local time
  */
-export function convertToSwedishTime(date: Date | string): Date {
-  if (!date) return new Date();
+export function convertToSwedishTime(date: Date | string): string {
+  if (!date) return new Date().toISOString();
   
   const inputDate = typeof date === 'string' ? new Date(date) : date;
   
-  // Convert UTC date to Swedish timezone
-  const formattedDate = formatInTimeZone(
-    inputDate,
-    SWEDISH_TIMEZONE,
-    "yyyy-MM-dd'T'HH:mm:ss.SSS"
-  );
+  // Convert to Swedish timezone
+  const zonedDate = toZonedTime(inputDate, SWEDISH_TIMEZONE);
   
-  return new Date(formattedDate);
+  // Format as ISO string without the Z suffix
+  return format(zonedDate, "yyyy-MM-dd'T'HH:mm:ss.SSS");
 }
 
 /**
@@ -49,11 +47,12 @@ export function convertDocumentDatesToSwedishTime<T>(
     
     // Navigate to the nested property
     for (let i = 0; i < paths.length - 1; i++) {
-      if (!currentObj[paths[i]]) return;
+      if (!currentObj || !currentObj[paths[i]]) return;
       currentObj = currentObj[paths[i]];
     }
     
     const lastPath = paths[paths.length - 1];
+    if (!currentObj) return;
     value = currentObj[lastPath];
 
     // Handle arrays of dates

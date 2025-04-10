@@ -38,8 +38,11 @@ app.use((req, res, next) => {
   
   // Override the res.json function
   res.json = function(body) {
-    // Convert date fields in the response to Swedish time
-    const dateFields = ['date', 'start', 'end', 'createdAt', 'updatedAt'];
+    // Complete list of date fields to convert
+    const dateFields = [
+      'date', 'start', 'end', 'createdAt', 'updatedAt',
+      'slots.start', 'slots.end', // For nested slot arrays
+    ];
     
     if (Array.isArray(body)) {
       body = body.map(item => convertDocumentDatesToSwedishTime(item, dateFields));
