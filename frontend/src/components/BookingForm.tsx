@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
+import { sv, enUS } from 'date-fns/locale';
 import {
   Button,
   Grid,
@@ -20,8 +21,6 @@ import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { fetchAvailability } from '../services/fetchAvailability';
 import { createBooking } from '../services/createBooking';
-import { initiatePayment } from '../services/initiatePayment';
-import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import axios, { AxiosError } from 'axios';
 import { useTranslation } from '../hooks/useTranslation';
 
@@ -33,7 +32,7 @@ interface BookingFormProps {
 }
 
 function BookingForm({ courtNumber, date: initialDate, sx }: BookingFormProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [date, setDate] = useState<Date>(initialDate);
   const [selectedSlots, setSelectedSlots] = useState<Slot[]>([]);
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -47,6 +46,7 @@ function BookingForm({ courtNumber, date: initialDate, sx }: BookingFormProps) {
   const [isUnder20, setIsUnder20] = useState(false);
   const [memberSlotsAvailable, setMemberSlotsAvailable] = useState(0);
   const [isMember, setIsMember] = useState(false);
+  const dateLocale = language === 'sv' ? sv : enUS;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -57,26 +57,33 @@ function BookingForm({ courtNumber, date: initialDate, sx }: BookingFormProps) {
         const availability = await fetchAvailability(date, courtNumber);
         console.log('Availability:', availability);
         // Directly use server-provided slots with availability
-        const generatedSlots = availability.map((slot: Slot) => ({
-          start: new Date(slot.start),
-          end: new Date(slot.end),
-          available: slot.available,
-          courtNumber: slot.courtNumber,
-          booking: slot.booking,
-          status: slot.status
-        }));
+        const generatedSlots = availability.map((slot: Slot) => {
+          const now = new Date();
+          const slotStartTime = new Date(slot.start);
+          const isPastSlot = now >= slotStartTime;
+          
+          return {
+            start: slotStartTime,
+            end: new Date(slot.end),
+            available: slot.available && !isPastSlot, // Mark past slots as unavailable
+            courtNumber: slot.courtNumber,
+            booking: slot.booking,
+            status: slot.status,
+            isPast: isPastSlot // Add flag to identify past slots
+          };
+        });
 
         setSlots(generatedSlots);
       } catch (err) {
         console.error('Error fetching availability:', err);
-        setError('Failed to load availability');
+        setError(t('booking.failedToLoadAvailability'));
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [date, courtNumber]);
+  }, [date, courtNumber, t]);
 
   useEffect(() => {
     const checkMemberStatus = async () => {
@@ -144,9 +151,12 @@ function BookingForm({ courtNumber, date: initialDate, sx }: BookingFormProps) {
 
       const { total } = calculateTotalPrice();
 
-      // Create booking first
-      const bookingId = await createBooking(selectedSlots, userInfo, isUnder20);
+      // Create booking with the current language
+      const bookingId = await createBooking(selectedSlots, userInfo, isUnder20, language);
 
+      // Store language preference in localStorage
+      localStorage.setItem('preferredLanguage', language);
+      
       // Redirect based on price
       if (total > 0) {
         window.location.href = `/checkout?bookingId=${bookingId}`;
@@ -156,7 +166,7 @@ function BookingForm({ courtNumber, date: initialDate, sx }: BookingFormProps) {
 
     } catch (error) {
       console.error('Booking error:', error);
-      setError(error instanceof Error ? error.message : 'Booking failed');
+      setError(error instanceof Error ? error.message : t('booking.bookingFailed'));
     } finally {
       setLoading(false);
     }
@@ -176,6 +186,13 @@ function BookingForm({ courtNumber, date: initialDate, sx }: BookingFormProps) {
   const selectedSlotStyle = {
     ...slotStyle,
     backgroundColor: 'rgba(76,175,80,0.2)',
+  };
+  
+  const pastSlotStyle = {
+    ...slotStyle,
+    backgroundColor: 'rgba(200,200,200,0.5)',
+    color: 'rgba(0,0,0,0.4)',
+    cursor: 'not-allowed'
   };
 
   return (
@@ -198,32 +215,40 @@ function BookingForm({ courtNumber, date: initialDate, sx }: BookingFormProps) {
         dateFormat="yyyy-MM-dd"
         minDate={new Date()}
         className="date-picker"
+        locale={dateLocale}
         customInput={
           <Button variant="outlined" fullWidth sx={{ mb: 2 }}>
-            {date ? format(date, 'yyyy-MM-dd') : 'Select Date'}
+            {date ? format(date, 'yyyy-MM-dd', { locale: dateLocale }) : t('booking.selectDate')}
           </Button>
         }
       />
       
       <Grid container spacing={1} sx={{ mb: 4 }}>
-        {slots.map((slot, index) => (
-          <Grid item xs={2} key={index}>
-            <Button
-              fullWidth
-              variant={selectedSlots.some(s => 
-                s.start.getTime() === slot.start.getTime()
-              ) ? 'contained' : 'outlined'}
-              color={slot.available ? 'primary' : 'error'}
-              onClick={() => handleSlotClick(slot)}
-              disabled={!slot.available}
-              sx={selectedSlots.some(s => 
-                s.start.getTime() === slot.start.getTime()
-              ) ? selectedSlotStyle : slotStyle}
-            >
-              {format(slot.start, 'HH:mm')}
-            </Button>
-          </Grid>
-        ))}
+        {slots.map((slot, index) => {
+          const isPastSlot = slot.isPast || false;
+          return (
+            <Grid item xs={2} key={index}>
+              <Button
+                fullWidth
+                variant={selectedSlots.some(s => 
+                  s.start.getTime() === slot.start.getTime()
+                ) ? 'contained' : 'outlined'}
+                color={isPastSlot ? 'inherit' : (slot.available ? 'primary' : 'error')}
+                onClick={() => handleSlotClick(slot)}
+                disabled={!slot.available || isPastSlot}
+                sx={
+                  isPastSlot 
+                    ? pastSlotStyle 
+                    : (selectedSlots.some(s => s.start.getTime() === slot.start.getTime()) 
+                        ? selectedSlotStyle 
+                        : slotStyle)
+                }
+              >
+                {format(slot.start, 'HH:mm', { locale: dateLocale })}
+              </Button>
+            </Grid>
+          );
+        })}
       </Grid>
       
       {selectedSlots.length > 0 && (
@@ -242,7 +267,7 @@ function BookingForm({ courtNumber, date: initialDate, sx }: BookingFormProps) {
               <Typography variant="body1" sx={{fontWeight: "bold"}}>
                 {t('booking.date')}:
               </Typography>
-              {format(date, 'yyyy-MM-dd')}
+              {format(date, 'PPP', { locale: dateLocale })}
               </div>
             </Grid>
             <Grid item xs={6}>
@@ -251,7 +276,7 @@ function BookingForm({ courtNumber, date: initialDate, sx }: BookingFormProps) {
               </Typography>
               {selectedSlots.map((slot, index) => (
                 <div key={index+"g2"}>
-                  {format(slot.start, 'HH:mm')} - {format(new Date(slot.start.getTime() + 60 * 60 * 1000), 'HH:mm')}
+                  {format(slot.start, 'HH:mm', { locale: dateLocale })} - {format(new Date(slot.start.getTime() + 60 * 60 * 1000), 'HH:mm', { locale: dateLocale })}
                 </div>
               ))}
               <div>

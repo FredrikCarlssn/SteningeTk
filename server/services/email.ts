@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 import { format } from 'date-fns';
-import { sv } from 'date-fns/locale';
+import { sv, enUS } from 'date-fns/locale';
 
 // Create a transporter using SMTP
 const transporter = nodemailer.createTransport({
@@ -30,13 +30,99 @@ interface BookingEmailData {
     paymentId?: string;
   };
   cancellationToken: string;
+  language?: 'sv' | 'en'; 
 }
 
+interface CancellationEmailData {
+  bookingId: string;
+  userName: string;
+  userEmail: string;
+  date: Date;
+  slots: Array<{
+    start: Date;
+    end: Date;
+    courtNumber: number;
+  }>;
+  language?: 'sv' | 'en';
+}
+
+// Email content translations
+const emailTranslations = {
+  sv: {
+    subject: 'Bekräftelse på din bokning - Steninge TK',
+    title: 'Bekräftelse på din bokning',
+    greeting: 'Hej',
+    thankYou: 'Tack för din bokning! Här är dina bokningsdetaljer:',
+    bookingDetails: 'Bokningsdetaljer',
+    date: 'Datum',
+    time: 'Tid',
+    court: 'Bana',
+    bookingId: 'Boknings-ID',
+    amount: 'Belopp',
+    status: 'Status',
+    completed: 'Bekräftad',
+    pending: 'Väntande betalning',
+    cancelLink: 'För att avbryta din bokning, klicka på följande länk:',
+    cancelButton: 'Avbryt bokning',
+    questions: 'Om du har några frågor, vänligen kontakta oss på'
+  },
+  en: {
+    subject: 'Booking Confirmation - Steninge TK',
+    title: 'Booking Confirmation',
+    greeting: 'Hello',
+    thankYou: 'Thank you for your booking! Here are your booking details:',
+    bookingDetails: 'Booking Details',
+    date: 'Date',
+    time: 'Time',
+    court: 'Court',
+    bookingId: 'Booking ID',
+    amount: 'Amount',
+    status: 'Status',
+    completed: 'Confirmed',
+    pending: 'Awaiting payment',
+    cancelLink: 'To cancel your booking, click the following link:',
+    cancelButton: 'Cancel booking',
+    questions: 'If you have any questions, please contact us at'
+  }
+};
+
+// Add cancellation-related translations
+const cancellationTranslations = {
+  sv: {
+    subject: 'Bekräftelse på avbokning - Steninge TK',
+    title: 'Din bokning har avbokats',
+    greeting: 'Hej',
+    message: 'Din bokning har nu avbokats. Här är detaljerna för den avbokade bokningen:',
+    bookingDetails: 'Bokningsdetaljer',
+    date: 'Datum',
+    time: 'Tid',
+    court: 'Bana',
+    bookingId: 'Boknings-ID',
+    refundInfo: 'Om du har betalat för denna bokning kommer en återbetalning att behandlas inom kort.',
+    questions: 'Om du har några frågor, vänligen kontakta oss på'
+  },
+  en: {
+    subject: 'Booking Cancellation Confirmation - Steninge TK',
+    title: 'Your Booking Has Been Cancelled',
+    greeting: 'Hello',
+    message: 'Your booking has been cancelled. Here are the details of the cancelled booking:',
+    bookingDetails: 'Booking Details',
+    date: 'Date',
+    time: 'Time',
+    court: 'Court',
+    bookingId: 'Booking ID',
+    refundInfo: 'If you paid for this booking, a refund will be processed shortly.',
+    questions: 'If you have any questions, please contact us at'
+  }
+};
+
 export const sendBookingConfirmation = async (data: BookingEmailData) => {
-  const { bookingId, userName, userEmail, date, slots, payment, cancellationToken } = data;
+  const { bookingId, userName, userEmail, date, slots, payment, cancellationToken, language = 'sv' } = data;
+  const translations = emailTranslations[language];
+  const dateLocale = language === 'sv' ? sv : enUS;
 
   // Format the date and time
-  const formattedDate = format(date, 'PPP', { locale: sv });
+  const formattedDate = format(date, 'PPP', { locale: dateLocale });
   const formattedTime = format(slots[0].start, 'HH:mm') + ' - ' + format(slots[0].end, 'HH:mm');
   const courtNumber = slots[0].courtNumber;
 
@@ -44,52 +130,52 @@ export const sendBookingConfirmation = async (data: BookingEmailData) => {
   const emailContent = {
     from: process.env.SMTP_FROM_EMAIL,
     to: userEmail,
-    subject: 'Bekräftelse på din bokning - Steninge TK',
+    subject: translations.subject,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #2c3e50;">Bekräftelse på din bokning</h1>
-        <p>Hej ${userName},</p>
-        <p>Tack för din bokning! Här är dina bokningsdetaljer:</p>
+        <h1 style="color: #2c3e50;">${translations.title}</h1>
+        <p>${translations.greeting} ${userName},</p>
+        <p>${translations.thankYou}</p>
         
         <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-          <h2 style="color: #2c3e50; margin-top: 0;">Bokningsdetaljer</h2>
-          <p><strong>Datum:</strong> ${formattedDate}</p>
-          <p><strong>Tid:</strong> ${formattedTime}</p>
-          <p><strong>Bana:</strong> ${courtNumber}</p>
-          <p><strong>Boknings-ID:</strong> ${bookingId}</p>
-          <p><strong>Belopp:</strong> ${payment.amount} SEK</p>
-          <p><strong>Status:</strong> ${payment.status === 'completed' ? 'Bekräftad' : 'Väntande betalning'}</p>
+          <h2 style="color: #2c3e50; margin-top: 0;">${translations.bookingDetails}</h2>
+          <p><strong>${translations.date}:</strong> ${formattedDate}</p>
+          <p><strong>${translations.time}:</strong> ${formattedTime}</p>
+          <p><strong>${translations.court}:</strong> ${courtNumber}</p>
+          <p><strong>${translations.bookingId}:</strong> ${bookingId}</p>
+          <p><strong>${translations.amount}:</strong> ${payment.amount} SEK</p>
+          <p><strong>${translations.status}:</strong> ${payment.status === 'completed' ? translations.completed : translations.pending}</p>
         </div>
 
-        <p>För att avbryta din bokning, klicka på följande länk:</p>
+        <p>${translations.cancelLink}</p>
         <p><a href="${process.env.CLIENT_URL}/cancel/${bookingId}?token=${cancellationToken}" 
               style="background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-          Avbryt bokning
+          ${translations.cancelButton}
         </a></p>
 
         <p style="margin-top: 30px; font-size: 0.9em; color: #6c757d;">
-          Om du har några frågor, vänligen kontakta oss på ${process.env.SMTP_FROM_EMAIL}
+          ${translations.questions} ${process.env.SMTP_FROM_EMAIL}
         </p>
       </div>
     `,
     text: `
-      Bekräftelse på din bokning
+      ${translations.title}
       
-      Hej ${userName},
+      ${translations.greeting} ${userName},
       
-      Tack för din bokning! Här är dina bokningsdetaljer:
+      ${translations.thankYou}
       
-      Datum: ${formattedDate}
-      Tid: ${formattedTime}
-      Bana: ${courtNumber}
-      Boknings-ID: ${bookingId}
-      Belopp: ${payment.amount} SEK
-      Status: ${payment.status === 'completed' ? 'Bekräftad' : 'Väntande betalning'}
+      ${translations.date}: ${formattedDate}
+      ${translations.time}: ${formattedTime}
+      ${translations.court}: ${courtNumber}
+      ${translations.bookingId}: ${bookingId}
+      ${translations.amount}: ${payment.amount} SEK
+      ${translations.status}: ${payment.status === 'completed' ? translations.completed : translations.pending}
       
-      För att avbryta din bokning, besök:
+      ${translations.cancelLink}
       ${process.env.CLIENT_URL}/cancel/${bookingId}?token=${cancellationToken}
       
-      Om du har några frågor, vänligen kontakta oss på ${process.env.SMTP_FROM_EMAIL}
+      ${translations.questions} ${process.env.SMTP_FROM_EMAIL}
     `
   };
 
@@ -98,6 +184,69 @@ export const sendBookingConfirmation = async (data: BookingEmailData) => {
     console.log('Confirmation email sent successfully');
   } catch (error) {
     console.error('Error sending confirmation email:', error);
+    throw error;
+  }
+};
+
+export const sendCancellationConfirmation = async (data: CancellationEmailData) => {
+  const { bookingId, userName, userEmail, date, slots, language = 'sv' } = data;
+  const translations = cancellationTranslations[language];
+  const dateLocale = language === 'sv' ? sv : enUS;
+
+  // Format the date and time
+  const formattedDate = format(date, 'PPP', { locale: dateLocale });
+  const formattedTime = format(slots[0].start, 'HH:mm') + ' - ' + format(slots[0].end, 'HH:mm');
+  const courtNumber = slots[0].courtNumber;
+
+  // Create the email content
+  const emailContent = {
+    from: process.env.SMTP_FROM_EMAIL,
+    to: userEmail,
+    subject: translations.subject,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #2c3e50;">${translations.title}</h1>
+        <p>${translations.greeting} ${userName},</p>
+        <p>${translations.message}</p>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <h2 style="color: #2c3e50; margin-top: 0;">${translations.bookingDetails}</h2>
+          <p><strong>${translations.date}:</strong> ${formattedDate}</p>
+          <p><strong>${translations.time}:</strong> ${formattedTime}</p>
+          <p><strong>${translations.court}:</strong> ${courtNumber}</p>
+          <p><strong>${translations.bookingId}:</strong> ${bookingId}</p>
+        </div>
+
+        <p>${translations.refundInfo}</p>
+
+        <p style="margin-top: 30px; font-size: 0.9em; color: #6c757d;">
+          ${translations.questions} ${process.env.SMTP_FROM_EMAIL}
+        </p>
+      </div>
+    `,
+    text: `
+      ${translations.title}
+      
+      ${translations.greeting} ${userName},
+      
+      ${translations.message}
+      
+      ${translations.date}: ${formattedDate}
+      ${translations.time}: ${formattedTime}
+      ${translations.court}: ${courtNumber}
+      ${translations.bookingId}: ${bookingId}
+      
+      ${translations.refundInfo}
+      
+      ${translations.questions} ${process.env.SMTP_FROM_EMAIL}
+    `
+  };
+
+  try {
+    await transporter.sendMail(emailContent);
+    console.log('Cancellation confirmation email sent successfully');
+  } catch (error) {
+    console.error('Error sending cancellation confirmation email:', error);
     throw error;
   }
 }; 

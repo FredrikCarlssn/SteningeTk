@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Typography, Box, Paper, CircularProgress, Alert } from '@mui/material';
 import { format } from 'date-fns';
+import { sv, enUS } from 'date-fns/locale';
 import { useTranslation } from '../hooks/useTranslation';
 
 interface BookingDetails {
@@ -32,10 +33,13 @@ interface BookingDetails {
 export default function Confirmation() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Get the date formatting locale based on current language
+  const dateLocale = language === 'sv' ? sv : enUS;
 
   useEffect(() => {
     const fetchBooking = async () => {
@@ -43,7 +47,7 @@ export default function Confirmation() {
         const response = await axios.get(`/api/bookings/${id}`);
         setBooking(response.data);
       } catch (err) {
-        setError('Failed to load booking details');
+        setError(t('confirmation.failedToLoad'));
         console.error('Error fetching booking:', err);
       } finally {
         setLoading(false);
@@ -53,7 +57,7 @@ export default function Confirmation() {
     if (id) {
       fetchBooking();
     }
-  }, [id]);
+  }, [id, t]);
 
   if (loading) {
     return (
@@ -66,11 +70,11 @@ export default function Confirmation() {
   if (error || !booking) {
     return (
       <Box p={3}>
-        <Alert severity="error">{error || 'Booking not found'}</Alert>
+        <Alert severity="error">{error || t('confirmation.bookingNotFound')}</Alert>
         <Box mt={2}>
           <Typography variant="body1">
             <a href="/" style={{ color: 'inherit', textDecoration: 'underline' }}>
-              Return to homepage
+              {t('confirmation.returnHome')}
             </a>
           </Typography>
         </Box>
@@ -94,10 +98,10 @@ export default function Confirmation() {
             {t('confirmation.bookingDetails')}
           </Typography>
           <Typography>
-            {t('confirmation.date')}: {format(new Date(booking.date), 'PPP')}
+            {t('confirmation.date')}: {format(new Date(booking.date), 'PPP', { locale: dateLocale })}
           </Typography>
           <Typography>
-            {t('confirmation.time')}: {format(new Date(booking.slots[0].start), 'p')} - {format(new Date(booking.slots[0].end), 'p')}
+            {t('confirmation.time')}: {format(new Date(booking.slots[0].start), 'p', { locale: dateLocale })} - {format(new Date(booking.slots[0].end), 'p', { locale: dateLocale })}
           </Typography>
           <Typography>
             {t('confirmation.court')}: {t(`courts.court${booking.slots[0].courtNumber}`)}

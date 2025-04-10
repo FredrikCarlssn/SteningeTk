@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import BookingForm from './components/BookingForm'
-import { format } from 'date-fns'
 import './App.css'
 import { Elements } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
@@ -12,28 +11,29 @@ import { Alert, Typography, Box, Button } from '@mui/material'
 import LandingPage from './components/LandingPage'
 import { useTranslation } from './hooks/useTranslation'
 import Confirmation from './components/Confirmation'
+import CancellationPage from './components/CancellationPage'
+import CancellationConfirmation from './components/CancellationConfirmation'
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
 
 function App() {
-  const [selectedDate, setSelectedDate] = useState(new Date())
-  const [selectedCourt, setSelectedCourt] = useState<1 | 2>(1)
   const location = useLocation()
+  const { t } = useTranslation();
 
   useEffect(() => {
     // Handle redirect from Stripe
     if (location.pathname === '/success') {
       // Payment successful
-      alert('Payment successful!')
+      alert(t('payment.successMessage'))
       // Handle successful booking
       // Redirect to booking confirmation or home
     } else if (location.pathname === '/cancel') {
       // Payment cancelled
-      alert('Payment cancelled')
+      alert(t('payment.cancelledMessage'))
       // Handle cancelled payment
       // Redirect to booking page or home
     }
-  }, [location])
+  }, [location, t])
 
   return (
     <div className="container">
@@ -43,6 +43,8 @@ function App() {
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/return" element={<ReturnHandler />} />
         <Route path="/confirmation/:id" element={<Confirmation />} />
+        <Route path="/cancel/:id" element={<CancellationPage />} />
+        <Route path="/cancellation-confirmation" element={<CancellationConfirmation />} />
       </Routes>
     </div>
   )
@@ -128,6 +130,7 @@ const MainAppContent = () => {
 const ReturnHandler = () => {
   const [status, setStatus] = useState<string | null>(null)
   const navigate = useNavigate()
+  const { t, language } = useTranslation();
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -140,9 +143,10 @@ const ReturnHandler = () => {
         
         if (response.data.status === 'complete' && response.data.bookingId) {
           await axios.put(`/api/payments/${response.data.bookingId}/complete`, {
-            paymentId: response.data.paymentId
+            paymentId: response.data.paymentId,
+            language
           })
-          setTimeout(() => navigate('/'), 3000)
+          setTimeout(() => navigate(`/confirmation/${response.data.bookingId}`), 3000)
         }
       } catch (error) {
         console.error('Status check failed:', error)
@@ -150,21 +154,21 @@ const ReturnHandler = () => {
     }
 
     checkStatus()
-  }, [navigate])
+  }, [navigate, language, t])
 
   return (
     <div style={{ padding: '2rem', textAlign: 'center' }}>
       {status === 'complete' ? (
         <Alert severity="success">
-          Payment successful! Redirecting to homepage...
+          {t('payment.successMessage')}
         </Alert>
       ) : status ? (
         <Alert severity="info">
-          Payment status: {status}
+          {t('payment.statusMessage')}: {status}
         </Alert>
       ) : (
         <Alert severity="warning">
-          Loading payment status...
+          {t('payment.loadingStatus')}
         </Alert>
       )}
     </div>

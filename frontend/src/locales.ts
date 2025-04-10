@@ -6,6 +6,10 @@ export const translations = {
     phone: "📞 08-123 45 67",
     address: "📍 Steninge Strandväg 5, 123 45 Stockholm",
     copyright: "© 2024 Steninge TK",
+    common: {
+      backToHome: "Tillbaka till startsidan",
+      cancel: "Avbryt"
+    },
     booking: {
       title: "Boka Tennisbana",
       court: "Bana",
@@ -27,7 +31,17 @@ export const translations = {
       paidSlots: 'Bokade platser',
       total: 'Totalt',
       memberDiscount: 'Medlemsrabatt tillämpad',
-      ageDiscount: 'Ungdomsrabatt (under 20)'
+      ageDiscount: 'Ungdomsrabatt (under 20)',
+      failedToLoadAvailability: "Kunde inte ladda tillgänglighet",
+      bookingFailed: "Bokningen misslyckades",
+      cancelBooking: "Avbryt bokning",
+      cancelConfirmation: "Är du säker på att du vill avboka denna bokning?",
+      confirmCancel: "Ja, avboka bokningen",
+      cancellationError: "Ett fel uppstod vid avbokning",
+      notFound: "Bokningen hittades inte",
+      invalidParameters: "Ogiltig boknings-ID eller avbokningstoken",
+      details: "Bokningsdetaljer",
+      bookingStarted: "Det går inte att avboka en bokning som redan har börjat eller passerat"
     },
     courts: {
       court1: "Bana 1",
@@ -53,14 +67,20 @@ export const translations = {
       email: "E-post",
       phone: "Telefon",
       bookingId: "Boknings-ID",
-      returnHome: "Tillbaka till startsidan"
+      returnHome: "Tillbaka till startsidan",
+      failedToLoad: "Kunde inte ladda bokningsdetaljer",
+      bookingNotFound: "Bokning hittades inte"
     },
     payment: {
       status: {
         completed: "Slutförd",
         pending: "Väntande",
         cancelled: "Avbruten"
-      }
+      },
+      successMessage: "Betalning lyckades! Omdirigerar till startsidan...",
+      statusMessage: "Betalningsstatus",
+      loadingStatus: "Laddar betalningsstatus...",
+      cancelledMessage: "Betalning avbruten"
     }
   },
   en: {
@@ -70,6 +90,10 @@ export const translations = {
     phone: "📞 +46 8-123 45 67",
     address: "📍 Steninge Strandväg 5, 123 45 Stockholm",
     copyright: "© 2024 Steninge TC",
+    common: {
+      backToHome: "Back to home",
+      cancel: "Cancel"
+    },
     booking: {
       title: "Book Tennis Court",
       court: "Court",
@@ -91,7 +115,17 @@ export const translations = {
       paidSlots: 'Paid slots',
       total: 'Total',
       memberDiscount: 'Member discount applied',
-      ageDiscount: 'Youth discount (under 20)'
+      ageDiscount: 'Youth discount (under 20)',
+      failedToLoadAvailability: "Failed to load availability",
+      bookingFailed: "Booking failed",
+      cancelBooking: "Cancel Booking",
+      cancelConfirmation: "Are you sure you want to cancel this booking?",
+      confirmCancel: "Yes, cancel booking",
+      cancellationError: "An error occurred during cancellation",
+      notFound: "Booking not found",
+      invalidParameters: "Invalid booking ID or cancellation token",
+      details: "Booking Details",
+      bookingStarted: "Cannot cancel a booking that has already started or passed"
     },
     courts: {
       court1: "Court 1",
@@ -117,14 +151,20 @@ export const translations = {
       email: "Email",
       phone: "Phone",
       bookingId: "Booking ID",
-      returnHome: "Return to homepage"
+      returnHome: "Return to homepage",
+      failedToLoad: "Failed to load booking details",
+      bookingNotFound: "Booking not found"
     },
     payment: {
       status: {
         completed: "Completed",
         pending: "Pending",
         cancelled: "Cancelled"
-      }
+      },
+      successMessage: "Payment successful! Redirecting to homepage...",
+      statusMessage: "Payment status",
+      loadingStatus: "Loading payment status...",
+      cancelledMessage: "Payment cancelled"
     }
   }
 }; 

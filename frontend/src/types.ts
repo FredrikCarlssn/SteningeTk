@@ -5,6 +5,7 @@ export interface Slot {
   available: boolean;
   booking: Booking | null;
   status: 'available' | 'booked' | 'pending' | null;
+  isPast?: boolean;
 }
 
 export interface User {

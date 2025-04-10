@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import { Booking } from '../models/Booking';
 import { endOfDay } from 'date-fns';
 import { HOURLY_PRICE_IN_SEK } from '../const';
@@ -7,9 +7,9 @@ import crypto from 'crypto';
 import Member from '../models/Member';
 import mongoose from 'mongoose';
 import stripe from '../services/stripe';
-import { sendBookingConfirmation } from '../services/email';
+import { sendBookingConfirmation, sendCancellationConfirmation } from '../services/email';
 
-const router = Router();
+const router = express.Router();
 
 // Get available time slots
 router.get('/availability', async (req: Request, res: Response) => {
@@ -20,24 +20,30 @@ router.get('/availability', async (req: Request, res: Response) => {
   // Get all possible slots
   const allSlots = generateTimeSlots(localDate, parseInt(courtNumber as string, 10));
 
-  // Find existing booked/pending slots
+  // Find existing slots with any status
   const existingSlots = await Slot.find({
     courtNumber: parseInt(courtNumber as string, 10),
     start: { $gte: localDate },
-    end: { $lte: endOfDay(localDate) },
-    status: { $in: ['booked', 'pending'] }
+    end: { $lte: endOfDay(localDate) }
   });
 
   // Mark availability
-  const slotsWithAvailability = allSlots.map(slot => ({
-    start: slot.start,
-    end: slot.end,
-    courtNumber: parseInt(courtNumber as string, 10),
-    available: !existingSlots.some(existing => 
-      slot.start < existing.end && 
-      slot.end > existing.start
-    )
-  }));
+  const slotsWithAvailability = allSlots.map(slot => {
+    // Find matching existing slot if any
+    const existingSlot = existingSlots.find(existing => 
+      existing.start.getTime() === slot.start.getTime() && 
+      existing.end.getTime() === slot.end.getTime()
+    );
+
+    return {
+      start: slot.start,
+      end: slot.end,
+      courtNumber: parseInt(courtNumber as string, 10),
+      // A slot is available if no existing slot or the existing slot has 'available' status
+      available: !existingSlot || existingSlot.status === 'available',
+      status: existingSlot ? existingSlot.status : 'available'
+    };
+  });
 
   res.json(slotsWithAvailability);
 });
@@ -65,18 +71,62 @@ function generateTimeSlots(date: Date, courtNumber: number) {
 // Add this after the availability route
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { slots: selectedSlots, user, isUnder20 } = req.body;
+    const { slots: selectedSlots, user, isUnder20, language = 'sv' } = req.body;
 
-    // Create slot documents
+    // Check if any selected slots are in the past
+    const now = new Date().getTime();
+    const hasPastSlots = selectedSlots.some((slot: { start: string }) => {
+      const slotStartTime = new Date(slot.start).getTime();
+      return now >= slotStartTime;
+    });
+
+    if (hasPastSlots) {
+      return res.status(400).json({ 
+        message: 'Cannot book slots that have already started or passed' 
+      });
+    }
+
+    // Check if any of the selected slots are already booked or pending
+    for (const slot of selectedSlots) {
+      const existingBookedSlot = await Slot.findOne({
+        start: new Date(slot.start),
+        end: new Date(slot.end),
+        courtNumber: slot.courtNumber,
+        status: { $in: ['booked', 'pending'] }
+      });
+
+      if (existingBookedSlot) {
+        return res.status(400).json({
+          message: 'One or more selected slots are already booked'
+        });
+      }
+    }
+
+    // Find existing available slots or create new ones
     const slotDocuments = await Promise.all(
       selectedSlots.map(async (slot: { start: Date; end: Date; courtNumber: number }) => {
-        const newSlot = new Slot({
-          start: slot.start,
-          end: slot.end,
+        // First check if the slot already exists but is available
+        const existingSlot = await Slot.findOne({
+          start: new Date(slot.start),
+          end: new Date(slot.end),
           courtNumber: slot.courtNumber,
-          status: 'pending'
+          status: 'available'
         });
-        return await newSlot.save();
+
+        if (existingSlot) {
+          // Use the existing slot
+          existingSlot.status = 'pending';
+          return await existingSlot.save();
+        } else {
+          // Create a new slot if none exists
+          const newSlot = new Slot({
+            start: slot.start,
+            end: slot.end,
+            courtNumber: slot.courtNumber,
+            status: 'pending'
+          });
+          return await newSlot.save();
+        }
       })
     );
 
@@ -112,7 +162,7 @@ router.post('/', async (req: Request, res: Response) => {
         phone: user.phone
       },
       payment: {
-        method: 'free', // Default for zero amount
+        method: paidSlots === 0 ? 'free' : 'stripe', // Use 'free' only for actual free bookings
         amount: paidSlots * HOURLY_PRICE_IN_SEK,
         status: paidSlots === 0 ? 'completed' : 'pending'
       },
@@ -120,6 +170,17 @@ router.post('/', async (req: Request, res: Response) => {
     });
 
     await newBooking.save();
+
+    // Update member's used slots if they are a member and have available slots
+    if (member && freeSlots > 0) {
+      const yearlySlot = member.yearlySlots.find(year => year.year === currentYear);
+      if (yearlySlot) {
+        // Add slot IDs to the usedSlots array for the number of free slots
+        const slotIdsToAdd = slotDocuments.slice(0, freeSlots).map(s => s._id);
+        yearlySlot.usedSlots.push(...slotIdsToAdd);
+        await member.save();
+      }
+    }
 
     // Update slots based on payment status
     const slotUpdate = {
@@ -151,7 +212,8 @@ router.post('/', async (req: Request, res: Response) => {
             method: newBooking.payment.method || undefined,
             paymentId: newBooking.payment.paymentId || undefined
           },
-          cancellationToken: newBooking.cancellationToken
+          cancellationToken: newBooking.cancellationToken,
+          language: language
         });
       } catch (emailError) {
         console.error('Failed to send confirmation email:', emailError);
@@ -169,7 +231,6 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// Add this route before the payment update routes
 router.get('/:id', async (req: Request<{ id: string }>, res: Response) => {
   try {
     const booking = await Booking.findById(req.params.id)
@@ -206,29 +267,109 @@ router.get('/:id', async (req: Request<{ id: string }>, res: Response) => {
 
 router.post('/:id/cancel', async (req: Request<{ id: string }>, res: Response) => {
   try {
+    const { token } = req.body;
     const booking = await Booking.findById(req.params.id);
     
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
 
-    if (!booking.payment) {
-      return res.status(400).json({ message: 'Booking has no payment information' });
+    // Verify cancellation token
+    if (!token || booking.cancellationToken !== token) {
+      return res.status(403).json({ message: 'Invalid cancellation token' });
     }
 
-    if (booking.payment.status === 'completed') {
-      return res.status(400).json({ message: 'Cannot cancel a completed booking' });
+    // Check if booking is already cancelled
+    if (booking.payment && booking.payment.status === 'cancelled') {
+      return res.status(400).json({ message: 'Booking is already cancelled' });
+    }
+
+    // Get the booking slot information to check actual start time
+    const bookingSlots = await Slot.find({ _id: { $in: booking.slots } }).sort('start');
+    
+    if (!bookingSlots || bookingSlots.length === 0) {
+      return res.status(400).json({ message: 'No valid slots found for this booking' });
+    }
+    
+    // Check if the first slot has already started or passed
+    const firstSlotStartTime = new Date(bookingSlots[0].start).getTime();
+    const now = new Date().getTime();
+    
+    if (now >= firstSlotStartTime) {
+      return res.status(400).json({ 
+        message: 'Cannot cancel a booking that has already started or passed' 
+      });
     }
 
     // Update booking status
-    booking.payment.status = 'cancelled';
-    await booking.save();
+    if (booking.payment) {
+      booking.payment.status = 'cancelled';
+      await booking.save();
+    }
 
-    // Update slots status
+    // Update slots status to make them available again
     await Slot.updateMany(
       { _id: { $in: booking.slots } },
-      { $set: { status: 'available' } }
+      { $set: { status: 'available', booking: null } }
     );
+
+    // If this was a member booking, remove the slots from their usedSlots
+    if (booking.payment && booking.payment.method === 'free' && booking.user && booking.user.email) {
+      const member = await Member.findOne({ email: booking.user.email });
+      if (member) {
+        const currentYear = new Date().getFullYear();
+        const yearlySlot = member.yearlySlots.find(year => year.year === currentYear);
+        if (yearlySlot) {
+          // Remove the slot IDs from the usedSlots array
+          yearlySlot.usedSlots = yearlySlot.usedSlots.filter(
+            (slotId: mongoose.Types.ObjectId) => !booking.slots.some(
+              (bookingSlotId: mongoose.Types.ObjectId) => 
+                bookingSlotId.toString() === slotId.toString()
+            )
+          );
+          await member.save();
+        }
+      }
+    }
+
+    // If this was a paid booking, initiate refund
+    if (booking.payment && booking.payment.paymentId && booking.payment.method === 'stripe') {
+      try {
+        const refund = await stripe.refunds.create({
+          payment_intent: booking.payment.paymentId,
+          reason: 'requested_by_customer'
+        });
+        
+        // Update payment status to refunded
+        booking.payment.status = 'refunded';
+        await booking.save();
+        
+        console.log('Refund processed successfully:', refund.id);
+      } catch (refundError) {
+        console.error('Refund error:', refundError);
+        // Still continue with cancellation even if refund fails
+      }
+    }
+
+    // Send cancellation confirmation email
+    try {
+      if (booking.user && booking.user.email && booking.user.name) {
+        await sendCancellationConfirmation({
+          bookingId: booking._id.toString(),
+          userName: booking.user.name,
+          userEmail: booking.user.email,
+          date: booking.date,
+          slots: bookingSlots.map(slot => ({
+            start: slot.start,
+            end: slot.end,
+            courtNumber: slot.courtNumber
+          }))
+        });
+      }
+    } catch (emailError) {
+      console.error('Failed to send cancellation confirmation email:', emailError);
+      // Don't throw the error, just log it
+    }
 
     res.json({ message: 'Booking cancelled successfully' });
   } catch (error) {
