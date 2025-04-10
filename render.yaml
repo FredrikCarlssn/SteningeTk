@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: steninge-tk-api
-    env: node
-    buildCommand: cd server && npm install && npm run build
-    startCommand: cd server && npm run prod
-    envVars:
-      - key: NODE_ENV
-        value: production
