@@ -7,7 +7,6 @@ import bookingRoutes from './routes/bookings';
 import paymentRoutes from './routes/payments';
 import path from 'path';
 import membersRouter from './routes/members';
-import { convertDocumentDatesToSwedishTime } from './utils/timeConverter';
 
 // Add validation for CLIENT_URL
 if (!process.env.CLIENT_URL) {
@@ -30,50 +29,6 @@ app.use(express.json());
 mongoose.connect(process.env.MONGO_URI!)
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
-
-// Time conversion middleware
-app.use((req, res, next) => {
-  // Store the original res.json function
-  const originalJson = res.json;
-  
-  // Override the res.json function
-  res.json = function(body) {
-    // Complete list of date fields to convert
-    const dateFields = [
-      'date', 'start', 'end', 'createdAt', 'updatedAt',
-      'slots.start', 'slots.end', // For nested slot arrays
-    ];
-    
-    // For debugging - log the original and converted times if they exist
-    if (process.env.NODE_ENV !== 'production') {
-      if (Array.isArray(body) && body.length > 0 && body[0].start) {
-        console.log('BEFORE - First item start time:', body[0].start);
-      } else if (body && body.start) {
-        console.log('BEFORE - Start time:', body.start);
-      }
-    }
-    
-    if (Array.isArray(body)) {
-      body = body.map(item => convertDocumentDatesToSwedishTime(item, dateFields));
-    } else {
-      body = convertDocumentDatesToSwedishTime(body, dateFields);
-    }
-    
-    // For debugging - log after conversion
-    if (process.env.NODE_ENV !== 'production') {
-      if (Array.isArray(body) && body.length > 0 && body[0].start) {
-        console.log('AFTER - First item start time:', body[0].start);
-      } else if (body && body.start) {
-        console.log('AFTER - Start time:', body.start);
-      }
-    }
-    
-    // Call the original res.json with the converted data
-    return originalJson.call(this, body);
-  };
-  
-  next();
-});
 
 // Routes
 app.use('/api/bookings', bookingRoutes);
