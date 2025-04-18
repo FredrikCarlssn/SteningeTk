@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { Alert, Typography, Button, Box, CircularProgress, Paper } from '@mui/material';
 import { useTranslation } from '../hooks/useTranslation';
-import axios from 'axios';
+import apiClient from '../services/api';
 
 export default function CancellationPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,7 +22,7 @@ export default function CancellationPage() {
       try {
         if (!id) return;
         
-        const response = await axios.get(`/api/bookings/${id}`);
+        const response = await apiClient.get(`/api/bookings/${id}`);
         setBooking(response.data);
       } catch (error) {
         console.error('Error fetching booking:', error);
@@ -44,7 +44,7 @@ export default function CancellationPage() {
         return;
       }
       
-      await axios.post(`/api/bookings/${id}/cancel`, { 
+      await apiClient.post(`/api/bookings/${id}/cancel`, { 
         token,
         language 
       });

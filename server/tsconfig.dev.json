@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true // Typically, dev config doesn't need to emit files
+  },
+  "exclude": ["node_modules"]
+} 

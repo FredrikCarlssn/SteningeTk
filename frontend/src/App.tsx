@@ -6,7 +6,7 @@ import { Elements } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
 import { Checkout } from './components/Checkout'
 import { Route, Routes } from 'react-router-dom'
-import axios from 'axios'
+import apiClient from './services/api'
 import { Alert, Typography, Box, Button, Container, Paper, CircularProgress, AppBar, Toolbar } from '@mui/material'
 import LandingPage from './components/LandingPage'
 import { useTranslation } from './hooks/useTranslation'
@@ -14,7 +14,6 @@ import Confirmation from './components/Confirmation'
 import CancellationPage from './components/CancellationPage'
 import CancellationConfirmation from './components/CancellationConfirmation'
 import SportsTennisIcon from '@mui/icons-material/SportsTennis'
-import LanguageIcon from '@mui/icons-material/Language'
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
 
@@ -102,7 +101,7 @@ function App() {
 
 const MainAppContent = () => {
   const { t } = useTranslation();
-  const [selectedDate, setSelectedDate] = useState(new Date())
+  const [selectedDate] = useState(new Date())
   const [selectedCourt, setSelectedCourt] = useState<1 | 2>(1)
 
   return (
@@ -186,11 +185,11 @@ const ReturnHandler = () => {
       }
 
       try {
-        const response = await axios.get(`/api/payments/session-status?session_id=${sessionId}`)
+        const response = await apiClient.get(`/api/payments/session-status?session_id=${sessionId}`)
         setStatus(response.data.status)
         
         if (response.data.status === 'complete' && response.data.bookingId) {
-          await axios.put(`/api/payments/${response.data.bookingId}/complete`, {
+          await apiClient.put(`/api/payments/${response.data.bookingId}/complete`, {
             paymentId: response.data.paymentId,
             language
           })

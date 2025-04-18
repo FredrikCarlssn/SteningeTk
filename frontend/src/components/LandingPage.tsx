@@ -1,4 +1,4 @@
-import { Button, Container, Typography, Box, IconButton, Grid, Card, CardContent } from '@mui/material';
+import { Button, Container, Typography, Box, IconButton, Grid } from '@mui/material';
 import { Link } from 'react-router-dom';
 import courtHero from '../../public/court-hero.jpeg';
 import { useTranslation } from '../hooks/useTranslation';

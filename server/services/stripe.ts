@@ -1,11 +1,10 @@
 import Stripe from 'stripe';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not set in environment variables');
-}
+// Use STRIPE_SECRET_KEY from environment variables
+const secretKey = process.env.STRIPE_SECRET_KEY;
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-01-27.acacia'
+const stripe = new Stripe(secretKey || 'sk_test_placeholder', {
+  apiVersion: '2025-01-27.acacia',
 });
 
 export default stripe; 

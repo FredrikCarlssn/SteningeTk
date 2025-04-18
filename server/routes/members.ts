@@ -82,9 +82,14 @@ router.post('/', async (req, res) => {
   }
 });
 // remove member
-router.delete('/:email', async (req, res) => {
+router.delete('/', async (req, res) => {
   try {
-    const { email } = req.params;
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+    
     await Member.findOneAndDelete({ email });
     res.json({ message: 'Member removed successfully' });
   } catch (error) {
@@ -98,6 +103,44 @@ router.get('/', async (req, res) => {
   try {
     const members = await Member.find();
     res.json(members);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update member email
+router.put('/', async (req, res) => {
+  try {
+    const { oldEmail, newEmail } = req.body;
+    
+    if (!oldEmail || !newEmail) {
+      return res.status(400).json({ error: 'Both old and new email are required' });
+    }
+
+    // Find member with old email
+    const member = await Member.findOne({ email: oldEmail });
+    if (!member) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+
+    // Check if new email is already in use by another member
+    const existingMember = await Member.findOne({ email: newEmail });
+    if (existingMember && existingMember._id.toString() !== member._id.toString()) {
+      return res.status(400).json({ error: 'New email already in use by another member' });
+    }
+
+    // Update the email
+    member.email = newEmail;
+    await member.save();
+    
+    res.json({
+      message: 'Email updated successfully',
+      member: {
+        email: member.email,
+        id: member._id
+      }
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Server error' });

@@ -52,9 +52,9 @@ router.get('/availability', async (req: Request, res: Response) => {
 function generateTimeSlots(date: Date, courtNumber: number) {
   const slots = [];
   const start = new Date(date);
-  start.setHours(8, 0, 0, 0); // Courts open at 8am
+  start.setHours(6, 0, 0, 0); // Courts open at 8am local time
   const end = new Date(date);
-  end.setHours(22, 0, 0, 0); // Courts close at 10pm
+  end.setHours(20, 0, 0, 0); // Courts close at 10pm local time
 
   while (start < end) {
     const slotEnd = new Date(start.getTime() + 60 * 60000); // 60-minute slots

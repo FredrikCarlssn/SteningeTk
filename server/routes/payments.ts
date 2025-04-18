@@ -3,19 +3,12 @@ import Stripe from 'stripe';
 import { Slot } from '../models/Slot';
 import { Booking } from '../models/Booking';
 import { Request, Response } from 'express';
+import stripe from '../services/stripe'; // Import the configured stripe instance
+import * as functions from 'firebase-functions'; // Import functions
 const router = express.Router();
 import { HOURLY_PRICE_IN_SEK } from '../const';
-import { Collection } from 'mongoose';
 import { sendBookingConfirmation } from '../services/email';
 import Member from '../models/Member';
-
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing STRIPE_SECRET_KEY environment variable');
-}
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-01-27.acacia'
-});
 
 router.post('/create-checkout-session', async (req, res) => {
   const { bookingId } = req.body;
@@ -44,7 +37,8 @@ router.post('/create-checkout-session', async (req, res) => {
         quantity: booking.slots.length,
       }],
       mode: 'payment',
-      return_url: `${process.env.CLIENT_URL}/return?session_id={CHECKOUT_SESSION_ID}`,
+      // Use CLIENT_URL from environment variables
+      return_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/return?session_id={CHECKOUT_SESSION_ID}`,
       metadata: {
         bookingId: bookingId.toString()
       }

@@ -1,0 +1,39 @@
+{
+  "functions": [
+    {
+      "source": "server",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "vpcConnector": "projects/steninge-tk/locations/us-central1/connectors/test1",
+      "vpcConnectorEgressSettings": "ALL_TRAFFIC",
+      "main": "build/index.js",
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ],
+      "runtime": "nodejs22"
+    }
+  ],
+  "hosting": {
+    "predeploy": [
+      "npm --prefix \"frontend\" run build"
+    ],
+    "public": "frontend/dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

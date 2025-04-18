@@ -1,17 +1,29 @@
 import nodemailer from 'nodemailer';
 import { format } from 'date-fns';
-import { sv, enUS } from 'date-fns/locale';
+import { toZonedTime } from 'date-fns-tz';
+import { sv, enUS, Locale } from 'date-fns/locale';
+// import { getSwedishTranslations, Translations } from '../utils/translations'; // Comment out missing import
 
-// Create a transporter using SMTP
+// Create transporter using environment variables
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || '465'),
-  secure: true, // Use SSL/TLS
+  host: process.env.SMTP_HOST, // Use environment variable
+  port: parseInt(process.env.SMTP_PORT || '465'), // Use environment variable
+  secure: parseInt(process.env.SMTP_PORT || '465') === 465, // true for 465, false for other ports
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
+    user: process.env.SMTP_USER, // Use environment variable
+    pass: process.env.SMTP_PASSWORD, // Use environment variable
   },
 });
+
+// Sweden timezone
+const SWEDEN_TIMEZONE = 'Europe/Stockholm';
+
+// Helper function to format dates in Sweden timezone
+const formatInSwedenTimezone = (date: Date, formatStr: string, locale: Locale) => {
+  // Convert UTC date to Sweden timezone
+  const swedenTime = toZonedTime(date, SWEDEN_TIMEZONE);
+  return format(swedenTime, formatStr, { locale });
+};
 
 interface BookingEmailData {
   bookingId: string;
@@ -121,9 +133,11 @@ export const sendBookingConfirmation = async (data: BookingEmailData) => {
   const translations = emailTranslations[language];
   const dateLocale = language === 'sv' ? sv : enUS;
 
-  // Format the date and time
-  const formattedDate = format(date, 'PPP', { locale: dateLocale });
-  const formattedTime = format(slots[0].start, 'HH:mm') + ' - ' + format(slots[0].end, 'HH:mm');
+  // Format the date and time using Sweden timezone
+  const formattedDate = formatInSwedenTimezone(date, 'PPP', dateLocale);
+  const formattedStartTime = formatInSwedenTimezone(slots[0].start, 'HH:mm', dateLocale);
+  const formattedEndTime = formatInSwedenTimezone(slots[0].end, 'HH:mm', dateLocale);
+  const formattedTime = `${formattedStartTime} - ${formattedEndTime}`;
   const courtNumber = slots[0].courtNumber;
 
   // Create the email content
@@ -193,9 +207,11 @@ export const sendCancellationConfirmation = async (data: CancellationEmailData) 
   const translations = cancellationTranslations[language];
   const dateLocale = language === 'sv' ? sv : enUS;
 
-  // Format the date and time
-  const formattedDate = format(date, 'PPP', { locale: dateLocale });
-  const formattedTime = format(slots[0].start, 'HH:mm') + ' - ' + format(slots[0].end, 'HH:mm');
+  // Format the date and time using Sweden timezone
+  const formattedDate = formatInSwedenTimezone(date, 'PPP', dateLocale);
+  const formattedStartTime = formatInSwedenTimezone(slots[0].start, 'HH:mm', dateLocale);
+  const formattedEndTime = formatInSwedenTimezone(slots[0].end, 'HH:mm', dateLocale);
+  const formattedTime = `${formattedStartTime} - ${formattedEndTime}`;
   const courtNumber = slots[0].courtNumber;
 
   // Create the email content

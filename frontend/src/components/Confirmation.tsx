@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Typography, Box, Paper, CircularProgress, Alert } from '@mui/material';
 import { format } from 'date-fns';
@@ -32,7 +32,6 @@ interface BookingDetails {
 
 export default function Confirmation() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { t, language } = useTranslation();
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [error, setError] = useState<string | null>(null);

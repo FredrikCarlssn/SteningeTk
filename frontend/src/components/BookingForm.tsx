@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
 import { sv, enUS } from 'date-fns/locale';
 import {
   Button,
   Grid,
-  Container,
   LinearProgress,
   Alert,
   Paper,
@@ -22,15 +20,15 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import PersonIcon from '@mui/icons-material/Person';
-import EmailIcon from '@mui/icons-material/Email';
-import PhoneIcon from '@mui/icons-material/Phone';
 import type { Slot } from '../types';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { fetchAvailability } from '../services/fetchAvailability';
 import { createBooking } from '../services/createBooking';
-import axios, { AxiosError } from 'axios';
+import { AxiosError } from 'axios';
 import { useTranslation } from '../hooks/useTranslation';
+import apiClient from '../services/api';
+import { formatSwedenTime, toSwedenLocalTime, formatDate } from '../utils/dateUtils';
 
 interface BookingFormProps {
   courtNumber: 1 | 2;
@@ -66,12 +64,17 @@ function BookingForm({ courtNumber, date: initialDate, sx }: BookingFormProps) {
         // Directly use server-provided slots with availability
         const generatedSlots = availability.map((slot: Slot) => {
           const now = new Date();
-          const slotStartTime = new Date(slot.start);
-          const isPastSlot = now >= slotStartTime;
+          
+          // Parse the original dates from the server, ensuring they're in Sweden's timezone
+          const slotStartTime = toSwedenLocalTime(slot.start);
+          const slotEndTime = toSwedenLocalTime(slot.end);
+
+          // Only mark as past if the slot is actually in the past
+          const isPastSlot = now > slotStartTime;
           
           return {
             start: slotStartTime,
-            end: new Date(slot.end),
+            end: slotEndTime,
             available: slot.available && !isPastSlot, // Mark past slots as unavailable
             courtNumber: slot.courtNumber,
             booking: slot.booking,
@@ -96,7 +99,7 @@ function BookingForm({ courtNumber, date: initialDate, sx }: BookingFormProps) {
     const checkMemberStatus = async () => {
       if (userInfo.email) {
         try {
-          const response = await axios.get(`/api/members/${encodeURIComponent(userInfo.email)}`);
+          const response = await apiClient.get(`/api/members/${encodeURIComponent(userInfo.email)}`);
           setIsMember(response.data.isMember);
           setMemberSlotsAvailable(response.data.slotsRemaining);
         } catch (error) {
@@ -228,8 +231,9 @@ function BookingForm({ courtNumber, date: initialDate, sx }: BookingFormProps) {
         ) : (
           <Grid container spacing={2} className="time-grid">
             {slots.map((slot, index) => {
-              const startTime = format(slot.start, 'HH:mm');
-              const endTime = format(slot.end, 'HH:mm');
+              // Use our utility function to ensure times are displayed in Sweden local time
+              const startTime = formatSwedenTime(slot.start, 'HH:mm', language);
+              const endTime = formatSwedenTime(slot.end, 'HH:mm', language);
               const isSelected = selectedSlots.some(s => s.start.getTime() === slot.start.getTime());
               const isDisabled = !slot.available || slot.isPast;
               
@@ -379,7 +383,7 @@ function BookingForm({ courtNumber, date: initialDate, sx }: BookingFormProps) {
                   {t('booking.date')}:
                 </Typography>
                 <Typography variant="body1" fontWeight={500}>
-                  {format(date, 'yyyy-MM-dd')}
+                  {formatDate(date, 'yyyy-MM-dd', language)}
                 </Typography>
               </Grid>
               <Grid item xs={12} md={4}>
@@ -387,28 +391,47 @@ function BookingForm({ courtNumber, date: initialDate, sx }: BookingFormProps) {
                   {t('booking.time')}:
                 </Typography>
                 <Typography variant="body1" fontWeight={500}>
-                  {selectedSlots.length > 0 && `${format(selectedSlots[0].start, 'HH:mm')} - ${format(selectedSlots[selectedSlots.length - 1].end, 'HH:mm')}`}
+                  {selectedSlots.length > 0 && `${formatSwedenTime(selectedSlots[0].start, 'HH:mm', language)} - ${formatSwedenTime(selectedSlots[selectedSlots.length - 1].end, 'HH:mm', language)}`}
                 </Typography>
               </Grid>
+              
+              <Grid item xs={12}>
+                <Divider sx={{ my: 1 }} />
+              </Grid>
+              
+              <Grid item xs={12} md={4}>
+                <Typography variant="body2" color="text.secondary">
+                  {t('booking.totalDuration')}:
+                </Typography>
+                <Typography variant="body1" fontWeight={500}>
+                  {selectedSlots.length} {t('booking.hours', { count: selectedSlots.length })}
+                </Typography>
+              </Grid>
+              
+              {isMember && memberSlotsAvailable > 0 && (
+                <Grid item xs={12} md={4}>
+                  <Typography variant="body2" color="text.secondary">
+                    {t('booking.memberDiscount')}:
+                  </Typography>
+                  <Typography variant="body1" fontWeight={500} color="success.main">
+                    {Math.min(selectedSlots.length, memberSlotsAvailable)} {t('booking.freeHours')}
+                  </Typography>
+                </Grid>
+              )}
+              
+              {isMember && (
+                <Grid item xs={12} md={4}>
+                  <Typography variant="body2" color="text.secondary">
+                    {t('booking.remainingSlots')}:
+                  </Typography>
+                  <Typography variant="body1" fontWeight={500} color="info.main">
+                    {Math.max(memberSlotsAvailable - Math.min(selectedSlots.length, memberSlotsAvailable), 0)} {t('booking.hoursLeft')}
+                  </Typography>
+                </Grid>
+              )}
             </Grid>
             
             <Divider sx={{ my: 2 }} />
-            
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-              <Typography variant="body1">{t('booking.totalDuration')}:</Typography>
-              <Typography variant="body1" fontWeight={600}>
-                {selectedSlots.length} {t('booking.hours', { count: selectedSlots.length })}
-              </Typography>
-            </Box>
-            
-            {isMember && memberSlotsAvailable > 0 && (
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                <Typography variant="body1">{t('booking.memberDiscount')}:</Typography>
-                <Typography variant="body1" fontWeight={600} color="success.main">
-                  -{Math.min(selectedSlots.length, memberSlotsAvailable)} {t('booking.freeHours')}
-                </Typography>
-              </Box>
-            )}
             
             {isUnder20 && (
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
